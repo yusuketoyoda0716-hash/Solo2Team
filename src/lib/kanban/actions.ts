@@ -29,6 +29,14 @@ export type KanbanAction =
       now: IsoDateString
     }
   | { type: 'task/deleted'; id: TaskId }
+  | {
+      type: 'task/moved'
+      id: TaskId
+      toColumnId: ColumnId
+      /** 移動先の列の中で何番目に置くか（0 始まり） */
+      toIndex: number
+      now: IsoDateString
+    }
 
 type ActionOf<T extends KanbanAction['type']> = Extract<
   KanbanAction,
@@ -115,4 +123,16 @@ export const updateTask = (
 export const deleteTask = (id: TaskId): ActionOf<'task/deleted'> => ({
   type: 'task/deleted',
   id,
+})
+
+export const moveTask = (
+  id: TaskId,
+  toColumnId: ColumnId,
+  toIndex: number,
+): ActionOf<'task/moved'> => ({
+  type: 'task/moved',
+  id,
+  toColumnId,
+  toIndex,
+  now: nowIso(),
 })

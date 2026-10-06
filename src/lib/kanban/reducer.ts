@@ -1,5 +1,6 @@
 import type { Board, Column, Task } from '@/types/kanban'
 import type { KanbanAction } from './actions.ts'
+import { selectTasks } from './selectors.ts'
 import type { KanbanState } from './state.ts'
 
 /** 兄弟の中で一番後ろの position（空なら 0） */
@@ -135,6 +136,38 @@ export function kanbanReducer(
         ...state,
         tasks: omitWhere(state.tasks, (t) => t.id === action.id),
       }
+    }
+    case 'task/moved': {
+      const task = state.tasks[action.id]
+      if (!task || !state.columns[action.toColumnId]) return state
+
+      // 移動先の列の並び（自分を除く）に差し込む
+      const destination = selectTasks(state, action.toColumnId).filter(
+        (t) => t.id !== task.id,
+      )
+      const index = Math.min(Math.max(0, action.toIndex), destination.length)
+      destination.splice(index, 0, task)
+
+      // 影響する列の position を 0 から振り直す
+      const tasks = { ...state.tasks }
+      const renumber = (list: Task[]) =>
+        list.forEach((t, position) => {
+          if (tasks[t.id].position !== position) {
+            tasks[t.id] = { ...tasks[t.id], position }
+          }
+        })
+      if (task.columnId !== action.toColumnId) {
+        renumber(
+          selectTasks(state, task.columnId).filter((t) => t.id !== task.id),
+        )
+      }
+      renumber(destination)
+      tasks[task.id] = {
+        ...tasks[task.id],
+        columnId: action.toColumnId,
+        updatedAt: action.now,
+      }
+      return { ...state, tasks }
     }
   }
 }

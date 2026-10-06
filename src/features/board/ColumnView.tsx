@@ -1,22 +1,25 @@
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState } from 'react'
 import { TextInputForm } from '@/components/TextInputForm.tsx'
 import { TaskCard } from '@/features/task/TaskCard.tsx'
 import { addTask, deleteColumn, renameColumn } from '@/lib/kanban/actions.ts'
-import { useKanbanDispatch, useKanbanState } from '@/lib/kanban/hooks.ts'
-import { selectTasks } from '@/lib/kanban/selectors.ts'
-import type { Column } from '@/types/kanban'
+import { useKanbanDispatch } from '@/lib/kanban/hooks.ts'
+import type { Column, Task } from '@/types/kanban'
 import styles from './ColumnView.module.css'
 
 type Props = {
   column: Column
+  /** 表示する順に並んだタスク（ドラッグ中はプレビューの並び） */
+  tasks: Task[]
 }
 
 /** ボード内の1列 */
-export function ColumnView({ column }: Props) {
-  const state = useKanbanState()
+export function ColumnView({ column, tasks }: Props) {
   const dispatch = useKanbanDispatch()
   const [isEditing, setIsEditing] = useState(false)
-  const tasks = selectTasks(state, column.id)
+  // タスクが1つもない列にも置けるよう、タスクの置き場全体を受け皿にする
+  const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   const handleDelete = () => {
     const ok = window.confirm(
@@ -60,15 +63,27 @@ export function ColumnView({ column }: Props) {
           </>
         )}
       </header>
-      {tasks.length === 0 ? (
-        <p className={styles.empty}>タスクはまだありません</p>
-      ) : (
-        <ul className={styles.tasks}>
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
-        </ul>
-      )}
+      <div
+        ref={setNodeRef}
+        className={
+          isOver ? `${styles.dropArea} ${styles.over}` : styles.dropArea
+        }
+      >
+        <SortableContext
+          items={tasks.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {tasks.length === 0 ? (
+            <p className={styles.empty}>タスクはまだありません</p>
+          ) : (
+            <ul className={styles.tasks}>
+              {tasks.map((task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
+            </ul>
+          )}
+        </SortableContext>
+      </div>
       <TextInputForm
         label={`列「${column.name}」に追加するタスク`}
         placeholder="新しいタスク"

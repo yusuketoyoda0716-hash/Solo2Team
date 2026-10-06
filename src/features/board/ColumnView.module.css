@@ -26,6 +26,17 @@
   white-space: nowrap;
 }
 
+/* タスクの置き場。空の列でもドロップできるよう高さを確保する */
+.dropArea {
+  min-height: 48px;
+  border-radius: 6px;
+}
+
+.over {
+  outline: 2px dashed var(--color-border);
+  outline-offset: 2px;
+}
+
 .tasks {
   margin: 0;
   padding: 0;

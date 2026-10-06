@@ -1,3 +1,5 @@
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import { deleteTask, updateTask } from '@/lib/kanban/actions.ts'
 import { useKanbanDispatch } from '@/lib/kanban/hooks.ts'
@@ -9,14 +11,31 @@ type Props = {
   task: Task
 }
 
-/** 列の中の1タスク。その場で編集に切り替えられる */
+/**
+ * 列の中の1タスク。その場で編集に切り替えられる。
+ * マウスではカードのどこからでもドラッグでき、キーボードでは「移動」ボタンから動かす。
+ */
 export function TaskCard({ task }: Props) {
   const dispatch = useKanbanDispatch()
   const [isEditing, setIsEditing] = useState(false)
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id, disabled: isEditing })
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+  }
 
   if (isEditing) {
     return (
-      <li className={styles.card}>
+      <li ref={setNodeRef} style={style} className={styles.card}>
         <TaskEditForm
           task={task}
           onSave={(title, description) => {
@@ -35,12 +54,28 @@ export function TaskCard({ task }: Props) {
   }
 
   return (
-    <li className={styles.card}>
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={
+        isDragging ? `${styles.card} ${styles.placeholder}` : styles.card
+      }
+      {...listeners}
+    >
       <p className={styles.title}>{task.title}</p>
       {task.description && (
         <p className={styles.description}>{task.description}</p>
       )}
       <div className={styles.actions}>
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          className={styles.handle}
+          {...attributes}
+          aria-label={`タスク「${task.title}」を移動`}
+        >
+          移動
+        </button>
         <button
           type="button"
           aria-label={`タスク「${task.title}」を編集`}

@@ -6,6 +6,7 @@
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-card);
+  cursor: grab;
 }
 
 .title {
@@ -20,6 +21,22 @@
   color: var(--color-muted);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* ドラッグ中、元の位置に残る影 */
+.placeholder {
+  opacity: 0.4;
+}
+
+/* ドラッグ中にポインターについてくるカード */
+.overlay {
+  cursor: grabbing;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 0.2);
+}
+
+.handle {
+  margin-right: auto;
+  cursor: grab;
 }
 
 .actions {
