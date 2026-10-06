@@ -2,6 +2,18 @@
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   color-scheme: light dark;
+
+  --color-border: #d4d4d8;
+  --color-muted: #71717a;
+  --color-selected: #e4e4e7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-border: #3f3f46;
+    --color-muted: #a1a1aa;
+    --color-selected: #27272a;
+  }
 }
 
 body {

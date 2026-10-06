@@ -1,0 +1,44 @@
+.boardList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.selected {
+  background: var(--color-selected);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
