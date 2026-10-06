@@ -26,6 +26,15 @@
   white-space: nowrap;
 }
 
+.tasks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .empty {
   margin: 0;
   font-size: 0.875rem;

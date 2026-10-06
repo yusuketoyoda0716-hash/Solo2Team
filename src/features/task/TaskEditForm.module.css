@@ -1,0 +1,15 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form textarea {
+  resize: vertical;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+}

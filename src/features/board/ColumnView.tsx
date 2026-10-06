@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { TextInputForm } from '@/components/TextInputForm.tsx'
-import { deleteColumn, renameColumn } from '@/lib/kanban/actions.ts'
-import { useKanbanDispatch } from '@/lib/kanban/hooks.ts'
+import { TaskCard } from '@/features/task/TaskCard.tsx'
+import { addTask, deleteColumn, renameColumn } from '@/lib/kanban/actions.ts'
+import { useKanbanDispatch, useKanbanState } from '@/lib/kanban/hooks.ts'
+import { selectTasks } from '@/lib/kanban/selectors.ts'
 import type { Column } from '@/types/kanban'
 import styles from './ColumnView.module.css'
 
@@ -11,8 +13,10 @@ type Props = {
 
 /** ボード内の1列 */
 export function ColumnView({ column }: Props) {
+  const state = useKanbanState()
   const dispatch = useKanbanDispatch()
   const [isEditing, setIsEditing] = useState(false)
+  const tasks = selectTasks(state, column.id)
 
   const handleDelete = () => {
     const ok = window.confirm(
@@ -56,7 +60,21 @@ export function ColumnView({ column }: Props) {
           </>
         )}
       </header>
-      <p className={styles.empty}>タスクはまだありません</p>
+      {tasks.length === 0 ? (
+        <p className={styles.empty}>タスクはまだありません</p>
+      ) : (
+        <ul className={styles.tasks}>
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} />
+          ))}
+        </ul>
+      )}
+      <TextInputForm
+        label={`列「${column.name}」に追加するタスク`}
+        placeholder="新しいタスク"
+        submitLabel="追加"
+        onSubmit={(title) => dispatch(addTask(column.id, title))}
+      />
     </section>
   )
 }
