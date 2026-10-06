@@ -1,0 +1,24 @@
+.boardView {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+/* 列が多いときは横にスクロールする */
+.columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.addColumn {
+  width: 272px;
+  flex-shrink: 0;
+}
