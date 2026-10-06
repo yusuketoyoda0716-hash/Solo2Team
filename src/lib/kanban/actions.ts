@@ -2,6 +2,8 @@ import type {
   BoardId,
   ColumnId,
   IsoDateString,
+  LabelColor,
+  LabelId,
   Task,
   TaskId,
 } from '@/types/kanban'
@@ -9,7 +11,7 @@ import type {
 /** タスクの編集フォームで変えられる項目 */
 export type TaskChanges = Pick<
   Task,
-  'title' | 'description' | 'startDate' | 'dueDate'
+  'title' | 'description' | 'startDate' | 'dueDate' | 'labelIds'
 >
 
 export type KanbanAction =
@@ -48,6 +50,21 @@ export type KanbanAction =
       toIndex: number
       now: IsoDateString
     }
+  | {
+      type: 'label/added'
+      id: LabelId
+      name: string
+      color: LabelColor
+      now: IsoDateString
+    }
+  | {
+      type: 'label/updated'
+      id: LabelId
+      name: string
+      color: LabelColor
+      now: IsoDateString
+    }
+  | { type: 'label/deleted'; id: LabelId }
 
 type ActionOf<T extends KanbanAction['type']> = Extract<
   KanbanAction,
@@ -144,4 +161,32 @@ export const moveTask = (
   toColumnId,
   toIndex,
   now: nowIso(),
+})
+
+export const addLabel = (
+  name: string,
+  color: LabelColor,
+): ActionOf<'label/added'> => ({
+  type: 'label/added',
+  id: newId(),
+  name,
+  color,
+  now: nowIso(),
+})
+
+export const updateLabel = (
+  id: LabelId,
+  name: string,
+  color: LabelColor,
+): ActionOf<'label/updated'> => ({
+  type: 'label/updated',
+  id,
+  name,
+  color,
+  now: nowIso(),
+})
+
+export const deleteLabel = (id: LabelId): ActionOf<'label/deleted'> => ({
+  type: 'label/deleted',
+  id,
 })

@@ -1,0 +1,13 @@
+.labels {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.labels li {
+  display: flex;
+  max-width: 100%;
+}

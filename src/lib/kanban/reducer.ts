@@ -1,6 +1,6 @@
-import type { Board, Column, Task } from '@/types/kanban'
+import type { Board, Column, Label, Task } from '@/types/kanban'
 import type { KanbanAction } from './actions.ts'
-import { selectTasks } from './selectors.ts'
+import { isLabelNameTaken, selectTasks } from './selectors.ts'
 import type { KanbanState } from './state.ts'
 
 /** 兄弟の中で一番後ろの position（空なら 0） */
@@ -106,6 +106,7 @@ export function kanbanReducer(
         description: action.description,
         startDate: null,
         dueDate: null,
+        labelIds: [],
         position: nextPosition(
           Object.values(state.tasks).filter(
             (t) => t.columnId === action.columnId,
@@ -119,11 +120,20 @@ export function kanbanReducer(
     case 'task/updated': {
       const task = state.tasks[action.id]
       if (!task) return state
+      // 存在するラベルだけを、重複なしで付ける
+      const labelIds = [...new Set(action.changes.labelIds)].filter(
+        (id) => state.labels[id],
+      )
       return {
         ...state,
         tasks: {
           ...state.tasks,
-          [task.id]: { ...task, ...action.changes, updatedAt: action.now },
+          [task.id]: {
+            ...task,
+            ...action.changes,
+            labelIds,
+            updatedAt: action.now,
+          },
         },
       }
     }
@@ -165,6 +175,53 @@ export function kanbanReducer(
         updatedAt: action.now,
       }
       return { ...state, tasks }
+    }
+
+    // ラベル名はワークスペース内で重複させない（重複する操作は無視する）
+    case 'label/added': {
+      if (isLabelNameTaken(state, action.name)) return state
+      const label: Label = {
+        id: action.id,
+        workspaceId: state.workspace.id,
+        name: action.name,
+        color: action.color,
+        createdAt: action.now,
+        updatedAt: action.now,
+      }
+      return { ...state, labels: { ...state.labels, [label.id]: label } }
+    }
+    case 'label/updated': {
+      const label = state.labels[action.id]
+      if (!label || isLabelNameTaken(state, action.name, label.id)) return state
+      return {
+        ...state,
+        labels: {
+          ...state.labels,
+          [label.id]: {
+            ...label,
+            name: action.name,
+            color: action.color,
+            updatedAt: action.now,
+          },
+        },
+      }
+    }
+    case 'label/deleted': {
+      if (!state.labels[action.id]) return state
+      // ラベルを外したタスクだけ作り直す（タスク自体の更新日時は変えない）
+      const tasks = Object.fromEntries(
+        Object.entries(state.tasks).map(([id, t]) => [
+          id,
+          t.labelIds.includes(action.id)
+            ? { ...t, labelIds: t.labelIds.filter((l) => l !== action.id) }
+            : t,
+        ]),
+      )
+      return {
+        ...state,
+        labels: omitWhere(state.labels, (l) => l.id === action.id),
+        tasks,
+      }
     }
   }
 }

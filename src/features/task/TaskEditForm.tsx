@@ -1,7 +1,10 @@
 import { useId, useState } from 'react'
+import { LabelChip } from '@/features/label/LabelChip.tsx'
 import { isValidDateRange } from '@/lib/date.ts'
 import type { TaskChanges } from '@/lib/kanban/actions.ts'
-import type { Task } from '@/types/kanban'
+import { useKanbanState } from '@/lib/kanban/hooks.ts'
+import { selectLabels } from '@/lib/kanban/selectors.ts'
+import type { LabelId, Task } from '@/types/kanban'
 import styles from './TaskEditForm.module.css'
 
 type Props = {
@@ -11,8 +14,10 @@ type Props = {
   onCancel: () => void
 }
 
-/** タスクのタイトル・説明・開始日・期限日を編集するフォーム */
+/** タスクのタイトル・説明・開始日・期限日・ラベルを編集するフォーム */
 export function TaskEditForm({ task, onSave, onCancel }: Props) {
+  const labels = selectLabels(useKanbanState())
+  const [labelIds, setLabelIds] = useState<LabelId[]>(task.labelIds)
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   // <input type="date"> は未入力を空文字で扱うので、フォームの中では文字列で持つ
@@ -37,6 +42,7 @@ export function TaskEditForm({ task, onSave, onCancel }: Props) {
           description: description.trim(),
           startDate: startDate || null,
           dueDate: dueDate || null,
+          labelIds,
         })
       }}
       onKeyDown={(e) => {
@@ -78,6 +84,29 @@ export function TaskEditForm({ task, onSave, onCancel }: Props) {
           onChange={(e) => setDueDate(e.target.value)}
         />
       </div>
+      <fieldset className={styles.labels}>
+        <legend>ラベル</legend>
+        {labels.length === 0 ? (
+          <p className={styles.hint}>サイドバーの「ラベル」から作れます</p>
+        ) : (
+          labels.map((label) => (
+            <label key={label.id} className={styles.labelOption}>
+              <input
+                type="checkbox"
+                checked={labelIds.includes(label.id)}
+                onChange={(e) =>
+                  setLabelIds((ids) =>
+                    e.target.checked
+                      ? [...ids, label.id]
+                      : ids.filter((id) => id !== label.id),
+                  )
+                }
+              />
+              <LabelChip label={label} />
+            </label>
+          ))
+        )}
+      </fieldset>
       {!rangeIsValid && (
         <p id={errorId} className={styles.error} role="alert">
           開始日は期限日より前にしてください

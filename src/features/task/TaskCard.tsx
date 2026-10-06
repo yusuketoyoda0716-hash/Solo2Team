@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
+import { TaskLabels } from '@/features/label/TaskLabels.tsx'
 import { deleteTask, updateTask } from '@/lib/kanban/actions.ts'
 import { useKanbanDispatch } from '@/lib/kanban/hooks.ts'
 import type { Task } from '@/types/kanban'
@@ -67,6 +68,7 @@ export function TaskCard({ task }: Props) {
       {task.description && (
         <p className={styles.description}>{task.description}</p>
       )}
+      <TaskLabels task={task} />
       <TaskDates task={task} />
       <div className={styles.actions}>
         <button

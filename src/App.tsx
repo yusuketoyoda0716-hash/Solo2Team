@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BoardList } from '@/features/board/BoardList.tsx'
 import { BoardView } from '@/features/board/BoardView.tsx'
+import { LabelManager } from '@/features/label/LabelManager.tsx'
 import { useKanbanState } from '@/lib/kanban/hooks.ts'
 import { selectBoards } from '@/lib/kanban/selectors.ts'
 import type { BoardId } from '@/types/kanban'
@@ -28,6 +29,7 @@ function App() {
             selectedBoardId={selectedBoard?.id ?? null}
             onSelect={setSelectedBoardId}
           />
+          <LabelManager />
         </aside>
         <main className={styles.main}>
           {selectedBoard ? (

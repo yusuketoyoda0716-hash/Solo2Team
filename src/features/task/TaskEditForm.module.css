@@ -17,6 +17,29 @@
   font-size: 0.875rem;
 }
 
+.labels {
+  margin: 0;
+  padding: 4px 8px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 0.875rem;
+}
+
+.labelOption {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+}
+
 .error {
   margin: 0;
   font-size: 0.875rem;

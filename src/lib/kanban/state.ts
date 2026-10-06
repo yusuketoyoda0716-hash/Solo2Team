@@ -4,6 +4,8 @@ import type {
   Column,
   ColumnId,
   IsoDateString,
+  Label,
+  LabelId,
   Task,
   TaskId,
   Workspace,
@@ -15,6 +17,7 @@ export type KanbanState = {
   boards: Record<BoardId, Board>
   columns: Record<ColumnId, Column>
   tasks: Record<TaskId, Task>
+  labels: Record<LabelId, Label>
 }
 
 export const LOCAL_WORKSPACE_ID = 'local-workspace'
@@ -30,5 +33,6 @@ export function createInitialState(now: IsoDateString): KanbanState {
     boards: {},
     columns: {},
     tasks: {},
+    labels: {},
   }
 }

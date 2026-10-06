@@ -9,6 +9,24 @@
   --color-column: #f4f4f5;
   --color-card: #ffffff;
   --color-danger: #dc2626;
+
+  /* ラベルの色（背景 / 文字）。文字が読みやすいよう、淡い背景に濃い文字を合わせる */
+  --label-red-bg: #fee2e2;
+  --label-red-fg: #991b1b;
+  --label-orange-bg: #ffedd5;
+  --label-orange-fg: #9a3412;
+  --label-yellow-bg: #fef9c3;
+  --label-yellow-fg: #854d0e;
+  --label-green-bg: #dcfce7;
+  --label-green-fg: #166534;
+  --label-teal-bg: #ccfbf1;
+  --label-teal-fg: #115e59;
+  --label-blue-bg: #dbeafe;
+  --label-blue-fg: #1e40af;
+  --label-purple-bg: #f3e8ff;
+  --label-purple-fg: #6b21a8;
+  --label-gray-bg: #e4e4e7;
+  --label-gray-fg: #3f3f46;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,6 +37,24 @@
     --color-column: #18181b;
     --color-card: #27272a;
     --color-danger: #f87171;
+
+    /* ダークモードは濃い背景に淡い文字 */
+    --label-red-bg: #7f1d1d;
+    --label-red-fg: #fecaca;
+    --label-orange-bg: #7c2d12;
+    --label-orange-fg: #fed7aa;
+    --label-yellow-bg: #713f12;
+    --label-yellow-fg: #fef08a;
+    --label-green-bg: #14532d;
+    --label-green-fg: #bbf7d0;
+    --label-teal-bg: #134e4a;
+    --label-teal-fg: #99f6e4;
+    --label-blue-bg: #1e3a8a;
+    --label-blue-fg: #bfdbfe;
+    --label-purple-bg: #581c87;
+    --label-purple-fg: #e9d5ff;
+    --label-gray-bg: #3f3f46;
+    --label-gray-fg: #e4e4e7;
   }
 }
 

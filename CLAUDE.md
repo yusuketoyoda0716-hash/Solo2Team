@@ -47,6 +47,7 @@ src/
   features/
     board/       … ボード・列の表示と操作
     task/        … タスクのCRUD、詳細
+    label/       … ラベルの管理と表示（フェーズ2で追加）
     filter/      … 検索・絞り込み
     workspace/   … ワークスペース切り替え・作成
     member/      … 招待・権限
