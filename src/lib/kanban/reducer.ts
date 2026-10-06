@@ -1,6 +1,6 @@
-import type { Board, Column, Label, Task } from '@/types/kanban'
+import type { Board, Column, Label, Task, TaskId } from '@/types/kanban'
 import type { KanbanAction } from './actions.ts'
-import { isLabelNameTaken, selectTasks } from './selectors.ts'
+import { canBeParent, isLabelNameTaken, selectTasks } from './selectors.ts'
 import type { KanbanState } from './state.ts'
 
 /** 兄弟の中で一番後ろの position（空なら 0） */
@@ -16,6 +16,15 @@ function omitWhere<T>(
   return Object.fromEntries(
     Object.entries(record).filter(([, value]) => !shouldOmit(value)),
   )
+}
+
+/** 指定したタスクと、その子課題の ID */
+function withChildren(state: KanbanState, ids: TaskId[]): Set<TaskId> {
+  const set = new Set(ids)
+  for (const t of Object.values(state.tasks)) {
+    if (t.parentId !== null && set.has(t.parentId)) set.add(t.id)
+  }
+  return set
 }
 
 // 存在しない ID への操作は何もせず、元の state をそのまま返す。
@@ -120,16 +129,32 @@ export function kanbanReducer(
         board?.doneColumnId === column.id
           ? { ...state.boards, [board.id]: { ...board, doneColumnId: null } }
           : state.boards
+      // 列のタスクと、その子課題（別の列にあっても）を消す
+      const removed = withChildren(
+        state,
+        Object.values(state.tasks)
+          .filter((t) => t.columnId === action.id)
+          .map((t) => t.id),
+      )
       return {
         ...state,
         boards,
         columns: omitWhere(state.columns, (c) => c.id === action.id),
-        tasks: omitWhere(state.tasks, (t) => t.columnId === action.id),
+        tasks: omitWhere(state.tasks, (t) => removed.has(t.id)),
       }
     }
 
     case 'task/added': {
       if (!state.columns[action.columnId]) return state
+      if (
+        action.parentId !== null &&
+        !canBeParent(state, action.parentId, {
+          id: null,
+          columnId: action.columnId,
+        })
+      ) {
+        return state
+      }
       const task: Task = {
         id: action.id,
         columnId: action.columnId,
@@ -138,6 +163,7 @@ export function kanbanReducer(
         startDate: null,
         dueDate: null,
         labelIds: [],
+        parentId: action.parentId,
         position: nextPosition(
           Object.values(state.tasks).filter(
             (t) => t.columnId === action.columnId,
@@ -155,6 +181,14 @@ export function kanbanReducer(
       const labelIds = [...new Set(action.changes.labelIds)].filter(
         (id) => state.labels[id],
       )
+      // 親にできないタスクが指定されたら、親は変えない
+      const { parentId: requestedParent } = action.changes
+      const parentId =
+        requestedParent === null ||
+        requestedParent === task.parentId ||
+        canBeParent(state, requestedParent, task)
+          ? requestedParent
+          : task.parentId
       return {
         ...state,
         tasks: {
@@ -163,6 +197,7 @@ export function kanbanReducer(
             ...task,
             ...action.changes,
             labelIds,
+            parentId,
             updatedAt: action.now,
           },
         },
@@ -170,9 +205,11 @@ export function kanbanReducer(
     }
     case 'task/deleted': {
       if (!state.tasks[action.id]) return state
+      // 親課題を消したら、子課題もまとめて消す
+      const removed = withChildren(state, [action.id])
       return {
         ...state,
-        tasks: omitWhere(state.tasks, (t) => t.id === action.id),
+        tasks: omitWhere(state.tasks, (t) => removed.has(t.id)),
       }
     }
     case 'task/moved': {

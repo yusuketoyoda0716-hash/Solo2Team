@@ -1,13 +1,16 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
+import { TextInputForm } from '@/components/TextInputForm.tsx'
 import { TaskLabels } from '@/features/label/TaskLabels.tsx'
-import { deleteTask, updateTask } from '@/lib/kanban/actions.ts'
-import { useKanbanDispatch } from '@/lib/kanban/hooks.ts'
+import { addTask, deleteTask, updateTask } from '@/lib/kanban/actions.ts'
+import { useKanbanDispatch, useKanbanState } from '@/lib/kanban/hooks.ts'
+import { selectChildren } from '@/lib/kanban/selectors.ts'
 import type { Task } from '@/types/kanban'
 import styles from './TaskCard.module.css'
 import { TaskDates } from './TaskDates.tsx'
 import { TaskEditForm } from './TaskEditForm.tsx'
+import { TaskRelations } from './TaskRelations.tsx'
 
 type Props = {
   task: Task
@@ -18,8 +21,10 @@ type Props = {
  * マウスではカードのどこからでもドラッグでき、キーボードでは「移動」ボタンから動かす。
  */
 export function TaskCard({ task }: Props) {
+  const state = useKanbanState()
   const dispatch = useKanbanDispatch()
   const [isEditing, setIsEditing] = useState(false)
+  const [isAddingChild, setIsAddingChild] = useState(false)
   const {
     attributes,
     listeners,
@@ -51,9 +56,16 @@ export function TaskCard({ task }: Props) {
   }
 
   const handleDelete = () => {
-    const ok = window.confirm(`タスク「${task.title}」を削除しますか？`)
-    if (ok) dispatch(deleteTask(task.id))
+    const childCount = selectChildren(state, task.id).length
+    const message =
+      childCount > 0
+        ? `タスク「${task.title}」を削除しますか？\n子課題 ${childCount} 件も削除されます。`
+        : `タスク「${task.title}」を削除しますか？`
+    if (window.confirm(message)) dispatch(deleteTask(task.id))
   }
+
+  // 親になれるのは、親を持たないタスクだけ（階層は1段まで）
+  const canHaveChildren = task.parentId === null
 
   return (
     <li
@@ -65,11 +77,27 @@ export function TaskCard({ task }: Props) {
       {...listeners}
     >
       <p className={styles.title}>{task.title}</p>
+      <TaskRelations task={task} />
       {task.description && (
         <p className={styles.description}>{task.description}</p>
       )}
       <TaskLabels task={task} />
       <TaskDates task={task} />
+      {isAddingChild && (
+        // 入力中にカードのドラッグが始まらないようにする
+        <div onPointerDown={(e) => e.stopPropagation()}>
+          <TextInputForm
+            label={`タスク「${task.title}」の子課題`}
+            placeholder="子課題のタイトル"
+            submitLabel="追加"
+            autoFocus
+            onSubmit={(title) =>
+              dispatch(addTask(task.columnId, title, { parentId: task.id }))
+            }
+            onCancel={() => setIsAddingChild(false)}
+          />
+        </div>
+      )}
       <div className={styles.actions}>
         <button
           type="button"
@@ -80,6 +108,15 @@ export function TaskCard({ task }: Props) {
         >
           移動
         </button>
+        {canHaveChildren && !isAddingChild && (
+          <button
+            type="button"
+            aria-label={`タスク「${task.title}」に子課題を追加`}
+            onClick={() => setIsAddingChild(true)}
+          >
+            子課題
+          </button>
+        )}
         <button
           type="button"
           aria-label={`タスク「${task.title}」を編集`}

@@ -17,6 +17,18 @@
   font-size: 0.875rem;
 }
 
+.parent {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.parent select {
+  min-width: 0;
+}
+
 .labels {
   margin: 0;
   padding: 4px 8px 6px;

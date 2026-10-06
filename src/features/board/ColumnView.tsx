@@ -22,17 +22,26 @@ type Props = {
 /** ボード内の1列 */
 export function ColumnView({ column, tasks }: Props) {
   const dispatch = useKanbanDispatch()
-  const isDoneColumn =
-    useKanbanState().boards[column.boardId]?.doneColumnId === column.id
+  const state = useKanbanState()
+  const isDoneColumn = state.boards[column.boardId]?.doneColumnId === column.id
   const [isEditing, setIsEditing] = useState(false)
   // タスクが1つもない列にも置けるよう、タスクの置き場全体を受け皿にする
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   const handleDelete = () => {
-    const ok = window.confirm(
-      `列「${column.name}」を削除しますか？\n中のタスクもすべて削除されます。`,
-    )
-    if (ok) dispatch(deleteColumn(column.id))
+    // 別の列にある子課題も、親と一緒に消える
+    const childrenElsewhere = Object.values(state.tasks).filter(
+      (t) =>
+        t.columnId !== column.id &&
+        t.parentId !== null &&
+        state.tasks[t.parentId]?.columnId === column.id,
+    ).length
+    const message =
+      `列「${column.name}」を削除しますか？\n中のタスクもすべて削除されます。` +
+      (childrenElsewhere > 0
+        ? `\n別の列にある子課題 ${childrenElsewhere} 件も削除されます。`
+        : '')
+    if (window.confirm(message)) dispatch(deleteColumn(column.id))
   }
 
   return (

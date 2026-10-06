@@ -3,8 +3,12 @@ import { LabelChip } from '@/features/label/LabelChip.tsx'
 import { isValidDateRange } from '@/lib/date.ts'
 import type { TaskChanges } from '@/lib/kanban/actions.ts'
 import { useKanbanState } from '@/lib/kanban/hooks.ts'
-import { selectLabels } from '@/lib/kanban/selectors.ts'
-import type { LabelId, Task } from '@/types/kanban'
+import {
+  selectChildren,
+  selectLabels,
+  selectParentCandidates,
+} from '@/lib/kanban/selectors.ts'
+import type { LabelId, Task, TaskId } from '@/types/kanban'
 import styles from './TaskEditForm.module.css'
 
 type Props = {
@@ -14,10 +18,15 @@ type Props = {
   onCancel: () => void
 }
 
-/** タスクのタイトル・説明・開始日・期限日・ラベルを編集するフォーム */
+/** タスクのタイトル・説明・開始日・期限日・ラベル・親課題を編集するフォーム */
 export function TaskEditForm({ task, onSave, onCancel }: Props) {
-  const labels = selectLabels(useKanbanState())
+  const state = useKanbanState()
+  const labels = selectLabels(state)
+  const parentCandidates = selectParentCandidates(state, task)
+  const hasChildren = selectChildren(state, task.id).length > 0
   const [labelIds, setLabelIds] = useState<LabelId[]>(task.labelIds)
+  const [parentId, setParentId] = useState<TaskId | null>(task.parentId)
+  const parentSelectId = useId()
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   // <input type="date"> は未入力を空文字で扱うので、フォームの中では文字列で持つ
@@ -43,6 +52,7 @@ export function TaskEditForm({ task, onSave, onCancel }: Props) {
           startDate: startDate || null,
           dueDate: dueDate || null,
           labelIds,
+          parentId,
         })
       }}
       onKeyDown={(e) => {
@@ -84,6 +94,25 @@ export function TaskEditForm({ task, onSave, onCancel }: Props) {
           onChange={(e) => setDueDate(e.target.value)}
         />
       </div>
+      <div className={styles.parent}>
+        <label htmlFor={parentSelectId}>親課題</label>
+        <select
+          id={parentSelectId}
+          value={parentId ?? ''}
+          disabled={hasChildren}
+          onChange={(e) => setParentId(e.target.value || null)}
+        >
+          <option value="">（なし）</option>
+          {parentCandidates.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      {hasChildren && (
+        <p className={styles.hint}>子課題があるため、親課題は設定できません</p>
+      )}
       <fieldset className={styles.labels}>
         <legend>ラベル</legend>
         {labels.length === 0 ? (

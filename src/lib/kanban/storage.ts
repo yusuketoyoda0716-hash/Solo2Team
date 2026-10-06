@@ -17,7 +17,8 @@ export const CORRUPT_BACKUP_KEY = `${STORAGE_KEY}:corrupt`
 //   2 = タスクに開始日・期限日を追加
 //   3 = ラベルを追加
 //   4 = ボードに完了列を追加
-const STORAGE_VERSION = 4
+//   5 = タスクに親課題を追加
+const STORAGE_VERSION = 5
 
 type StoredData = {
   version: typeof STORAGE_VERSION
@@ -64,11 +65,15 @@ export function saveState(state: KanbanState): void {
 
 // ---- 古い形式の型と、1つ新しい形式への変換 ----
 
+type TaskV4 = Omit<Task, 'parentId'>
+type KanbanStateV4 = Omit<KanbanState, 'tasks'> & {
+  tasks: Record<string, TaskV4>
+}
 type BoardV3 = Omit<Board, 'doneColumnId'>
-type KanbanStateV3 = Omit<KanbanState, 'boards'> & {
+type KanbanStateV3 = Omit<KanbanStateV4, 'boards'> & {
   boards: Record<string, BoardV3>
 }
-type TaskV2 = Omit<Task, 'labelIds'>
+type TaskV2 = Omit<TaskV4, 'labelIds'>
 type KanbanStateV2 = Omit<KanbanStateV3, 'tasks' | 'labels'> & {
   tasks: Record<string, TaskV2>
 }
@@ -104,9 +109,15 @@ const migrateV2ToV3 = (state: KanbanStateV2): KanbanStateV3 => ({
 })
 
 /** v3 → v4：ボードに完了列（未設定）を足す */
-const migrateV3ToV4 = (state: KanbanStateV3): KanbanState => ({
+const migrateV3ToV4 = (state: KanbanStateV3): KanbanStateV4 => ({
   ...state,
   boards: mapValues(state.boards, (b) => ({ ...b, doneColumnId: null })),
+})
+
+/** v4 → v5：タスクに親課題（なし）を足す */
+const migrateV4ToV5 = (state: KanbanStateV4): KanbanState => ({
+  ...state,
+  tasks: mapValues(state.tasks, (t) => ({ ...t, parentId: null })),
 })
 
 /** 保存形式のバージョンを見て、今の形の state にする（読めなければ null） */
@@ -114,19 +125,23 @@ function parseStoredData(data: unknown): KanbanState | null {
   if (!isObject(data)) return null
   const { state } = data
   switch (data.version) {
+    case 5:
+      return isStateShape<KanbanState>(state, schemaV5) ? state : null
     case 4:
-      return isStateShape<KanbanState>(state, schemaV4) ? state : null
+      return isStateShape<KanbanStateV4>(state, schemaV4)
+        ? migrateV4ToV5(state)
+        : null
     case 3:
       return isStateShape<KanbanStateV3>(state, schemaV3)
-        ? migrateV3ToV4(state)
+        ? migrateV4ToV5(migrateV3ToV4(state))
         : null
     case 2:
       return isStateShape<KanbanStateV2>(state, schemaV2)
-        ? migrateV3ToV4(migrateV2ToV3(state))
+        ? migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(state)))
         : null
     case 1:
       return isStateShape<KanbanStateV1>(state, schemaV1)
-        ? migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(state)))
+        ? migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(state))))
         : null
     default:
       return null
@@ -234,6 +249,11 @@ const schemaV3: Schema = {
 const schemaV4: Schema = {
   ...schemaV3,
   boardFields: { ...schemaV3.boardFields, doneColumnId: 'stringOrNull' },
+}
+
+const schemaV5: Schema = {
+  ...schemaV4,
+  taskFields: { ...schemaV4.taskFields, parentId: 'stringOrNull' },
 }
 
 function isStateShape<S>(value: unknown, schema: Schema): value is S {

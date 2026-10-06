@@ -62,6 +62,11 @@ export type Task = {
   dueDate: DateOnlyString | null
   /** 付いているラベル */
   labelIds: LabelId[]
+  /**
+   * 親課題（なければ null）。親になれるのは同じボードの、親を持たないタスクだけ
+   * （階層は1段まで）
+   */
+  parentId: TaskId | null
   /** 列内での並び順（小さいほど上） */
   position: number
   createdAt: IsoDateString

@@ -11,7 +11,7 @@ import type {
 /** タスクの編集フォームで変えられる項目 */
 export type TaskChanges = Pick<
   Task,
-  'title' | 'description' | 'startDate' | 'dueDate' | 'labelIds'
+  'title' | 'description' | 'startDate' | 'dueDate' | 'labelIds' | 'parentId'
 >
 
 export type KanbanAction =
@@ -40,6 +40,8 @@ export type KanbanAction =
       columnId: ColumnId
       title: string
       description: string
+      /** 子課題として追加するときの親 */
+      parentId: TaskId | null
       now: IsoDateString
     }
   | {
@@ -143,13 +145,14 @@ export const deleteColumn = (id: ColumnId): ActionOf<'column/deleted'> => ({
 export const addTask = (
   columnId: ColumnId,
   title: string,
-  description = '',
+  options: { description?: string; parentId?: TaskId | null } = {},
 ): ActionOf<'task/added'> => ({
   type: 'task/added',
   id: newId(),
   columnId,
   title,
-  description,
+  description: options.description ?? '',
+  parentId: options.parentId ?? null,
   now: nowIso(),
 })
 
