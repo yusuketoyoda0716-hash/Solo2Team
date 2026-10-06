@@ -11,16 +11,18 @@ import {
 } from '@/lib/kanban/actions.ts'
 import { useKanbanDispatch, useKanbanState } from '@/lib/kanban/hooks.ts'
 import type { Column, Task } from '@/types/kanban'
+import type { Highlight } from './BoardView.tsx'
 import styles from './ColumnView.module.css'
 
 type Props = {
   column: Column
   /** 表示する順に並んだタスク（ドラッグ中はプレビューの並び） */
   tasks: Task[]
+  highlight?: Highlight | null
 }
 
 /** ボード内の1列 */
-export function ColumnView({ column, tasks }: Props) {
+export function ColumnView({ column, tasks, highlight = null }: Props) {
   const dispatch = useKanbanDispatch()
   const state = useKanbanState()
   const isDoneColumn = state.boards[column.boardId]?.doneColumnId === column.id
@@ -110,7 +112,13 @@ export function ColumnView({ column, tasks }: Props) {
           ) : (
             <ul className={styles.tasks}>
               {tasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  highlightSeq={
+                    highlight?.taskId === task.id ? highlight.seq : undefined
+                  }
+                />
               ))}
             </ul>
           )}

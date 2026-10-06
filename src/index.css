@@ -9,6 +9,7 @@
   --color-column: #f4f4f5;
   --color-card: #ffffff;
   --color-danger: #dc2626;
+  --color-highlight: #2563eb;
 
   /* ラベルの色（背景 / 文字）。文字が読みやすいよう、淡い背景に濃い文字を合わせる */
   --label-red-bg: #fee2e2;
@@ -37,6 +38,7 @@
     --color-column: #18181b;
     --color-card: #27272a;
     --color-danger: #f87171;
+    --color-highlight: #60a5fa;
 
     /* ダークモードは濃い背景に淡い文字 */
     --label-red-bg: #7f1d1d;

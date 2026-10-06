@@ -4,17 +4,22 @@ import { TaskCardPreview } from '@/features/task/TaskCardPreview.tsx'
 import { addColumn } from '@/lib/kanban/actions.ts'
 import { useKanbanDispatch, useKanbanState } from '@/lib/kanban/hooks.ts'
 import { selectColumns } from '@/lib/kanban/selectors.ts'
-import type { Board } from '@/types/kanban'
+import type { Board, TaskId } from '@/types/kanban'
 import styles from './BoardView.module.css'
 import { ColumnView } from './ColumnView.tsx'
 import { useTaskDragAndDrop } from './useTaskDragAndDrop.ts'
 
+/** 課題一覧から開いたタスク。seq は同じタスクをもう一度開いたときにも反応させるため */
+export type Highlight = { taskId: TaskId; seq: number }
+
 type Props = {
   board: Board
+  /** 目立たせるタスク（課題一覧から開いたとき） */
+  highlight?: Highlight | null
 }
 
 /** 開いているボードの表示 */
-export function BoardView({ board }: Props) {
+export function BoardView({ board, highlight = null }: Props) {
   const state = useKanbanState()
   const dispatch = useKanbanDispatch()
   const columns = selectColumns(state, board.id)
@@ -40,6 +45,7 @@ export function BoardView({ board }: Props) {
               tasks={(taskIdsByColumn[column.id] ?? []).map(
                 (id) => state.tasks[id],
               )}
+              highlight={highlight}
             />
           ))}
           <div className={styles.addColumn}>

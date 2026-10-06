@@ -39,6 +39,14 @@ export function isValidDateRange(
   return startDate === null || dueDate === null || startDate <= dueDate
 }
 
+/** 日時の表示（端末のタイムゾーン）。例: "2026/10/06 14:05" */
+export function formatDateTime(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 /** カード用の短い表示。今年なら "10/20"、それ以外は "2027/1/5" */
 export function formatShortDate(
   date: DateOnlyString,

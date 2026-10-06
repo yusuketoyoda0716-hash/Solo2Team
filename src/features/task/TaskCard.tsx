@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TextInputForm } from '@/components/TextInputForm.tsx'
 import { TaskLabels } from '@/features/label/TaskLabels.tsx'
 import { addTask, deleteTask, updateTask } from '@/lib/kanban/actions.ts'
@@ -14,13 +14,15 @@ import { TaskRelations } from './TaskRelations.tsx'
 
 type Props = {
   task: Task
+  /** 課題一覧から開かれたときに変わる番号。変わるたびにカードへ移動して目立たせる */
+  highlightSeq?: number
 }
 
 /**
  * 列の中の1タスク。その場で編集に切り替えられる。
  * マウスではカードのどこからでもドラッグでき、キーボードでは「移動」ボタンから動かす。
  */
-export function TaskCard({ task }: Props) {
+export function TaskCard({ task, highlightSeq }: Props) {
   const state = useKanbanState()
   const dispatch = useKanbanDispatch()
   const [isEditing, setIsEditing] = useState(false)
@@ -35,6 +37,33 @@ export function TaskCard({ task }: Props) {
     isDragging,
   } = useSortable({ id: task.id, disabled: isEditing })
 
+  const cardRef = useRef<HTMLLIElement | null>(null)
+  const handleRef = useRef<HTMLButtonElement | null>(null)
+  const setCardRef = (node: HTMLLIElement | null) => {
+    setNodeRef(node)
+    cardRef.current = node
+  }
+  const setHandleRef = (node: HTMLButtonElement | null) => {
+    setActivatorNodeRef(node)
+    handleRef.current = node
+  }
+
+  // 課題一覧から開かれたら、カードを画面に入れてフォーカスし、少しの間光らせる
+  useEffect(() => {
+    if (highlightSeq === undefined) return
+    const card = cardRef.current
+    if (!card) return
+    card.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    handleRef.current?.focus({ preventScroll: true })
+    card.animate(
+      [
+        { boxShadow: '0 0 0 3px var(--color-highlight)' },
+        { boxShadow: '0 0 0 3px transparent' },
+      ],
+      { duration: 1600, easing: 'ease-out' },
+    )
+  }, [highlightSeq])
+
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
@@ -42,7 +71,7 @@ export function TaskCard({ task }: Props) {
 
   if (isEditing) {
     return (
-      <li ref={setNodeRef} style={style} className={styles.card}>
+      <li ref={setCardRef} style={style} className={styles.card}>
         <TaskEditForm
           task={task}
           onSave={(changes) => {
@@ -69,7 +98,7 @@ export function TaskCard({ task }: Props) {
 
   return (
     <li
-      ref={setNodeRef}
+      ref={setCardRef}
       style={style}
       className={
         isDragging ? `${styles.card} ${styles.placeholder}` : styles.card
@@ -101,7 +130,7 @@ export function TaskCard({ task }: Props) {
       <div className={styles.actions}>
         <button
           type="button"
-          ref={setActivatorNodeRef}
+          ref={setHandleRef}
           className={styles.handle}
           {...attributes}
           aria-label={`タスク「${task.title}」を移動`}
