@@ -1,32 +1,62 @@
-# React + TypeScript + Vite
+# Solo2Team
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+個人でもチームでも使える、カンバン型のタスク管理アプリです。
+ソロ用とチーム用で仕組みを分けず、「ワークスペース」を最初から置くことで、個人利用からチーム利用へ作り直しなしで広げられる設計にしています。
 
-Currently, two official plugins are available:
+> 開発中です。フェーズごとに機能を追加しています（進み具合は「開発の進め方」を参照）。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 主な機能
 
-## React Compiler
+予定している機能です。フェーズ1〜3で、ソロで使えるカンバンとして完成させます。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- ボード・列・タスクの追加／編集／削除
+- ドラッグ＆ドロップでのタスク移動、並び順の保持
+- 期限・ラベル
+- 担当者、ラベル、期限切れなどでの絞り込み、キーワード検索
 
-## Expanding the Oxlint configuration
+## 技術スタック
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+| 用途   | 使うもの           |
+| ------ | ------------------ |
+| ビルド | Vite               |
+| UI     | React + TypeScript |
+| Lint   | oxlint             |
+| 整形   | Prettier           |
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+フェーズが進むにつれて追加します。
+
+## 設計のポイント
+
+<!-- docs/decisions.md をもとに、フェーズ1〜3の完成時に書く -->
+
+設計上の判断とその理由は [docs/decisions.md](docs/decisions.md) に記録しています。
+
+## 起動方法
+
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+`http://localhost:5173/` で開きます。
+
+| コマンド               | 内容               |
+| ---------------------- | ------------------ |
+| `npm run dev`          | 開発サーバーを起動 |
+| `npm run build`        | 型チェックとビルド |
+| `npm run lint`         | oxlint でチェック  |
+| `npm run format`       | Prettier で整形    |
+| `npm run format:check` | 整形済みかを確認   |
+
+## 開発の進め方
+
+機能をフェーズに分け、1つずつ完成させてから次へ進めています。
+
+- [ ] フェーズ0：環境構築
+- [ ] フェーズ1：ソロで完結するカンバン
+- [ ] フェーズ2：操作性（ドラッグ＆ドロップ、期限・ラベル）
+- [ ] フェーズ3：検索・フィルタ
+- [ ] フェーズ4：バックエンド化（認証、DB保存）
+- [ ] フェーズ5：チーム機能（ワークスペース作成、メンバー招待）
+- [ ] フェーズ6：権限（オーナー／メンバー／閲覧のみ）
+- [ ] フェーズ7：リアルタイム同期、テストとCI
