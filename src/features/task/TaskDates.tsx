@@ -1,4 +1,6 @@
 import { formatShortDate, isOverdue, todayDateOnly } from '@/lib/date.ts'
+import { useKanbanState } from '@/lib/kanban/hooks.ts'
+import { isTaskDone } from '@/lib/kanban/selectors.ts'
 import type { Task } from '@/types/kanban'
 import styles from './TaskDates.module.css'
 
@@ -6,13 +8,17 @@ type Props = {
   task: Task
 }
 
-/** カードに出す開始日・期限日。期限切れは赤字と「期限切れ」の文字で示す */
+/**
+ * カードに出す開始日・期限日。期限切れは赤字と「期限切れ」の文字で示す
+ * （完了列にあるタスクは期限切れにしない）
+ */
 export function TaskDates({ task }: Props) {
+  const done = isTaskDone(useKanbanState(), task)
   const { startDate, dueDate } = task
   if (startDate === null && dueDate === null) return null
 
   const today = todayDateOnly()
-  const overdue = isOverdue(dueDate, today)
+  const overdue = !done && isOverdue(dueDate, today)
   const start = startDate && formatShortDate(startDate, today)
   const due = dueDate && formatShortDate(dueDate, today)
 

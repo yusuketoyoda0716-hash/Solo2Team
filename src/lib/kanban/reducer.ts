@@ -30,6 +30,7 @@ export function kanbanReducer(
         workspaceId: state.workspace.id,
         name: action.name,
         position: nextPosition(Object.values(state.boards)),
+        doneColumnId: null,
         createdAt: action.now,
         updatedAt: action.now,
       }
@@ -58,6 +59,28 @@ export function kanbanReducer(
         boards: omitWhere(state.boards, (b) => b.id === action.id),
         columns: omitWhere(state.columns, (c) => columnIds.has(c.id)),
         tasks: omitWhere(state.tasks, (t) => columnIds.has(t.columnId)),
+      }
+    }
+    case 'board/doneColumnSet': {
+      const board = state.boards[action.id]
+      if (!board) return state
+      // 完了列にできるのは、そのボードの列だけ
+      if (
+        action.columnId !== null &&
+        state.columns[action.columnId]?.boardId !== board.id
+      ) {
+        return state
+      }
+      return {
+        ...state,
+        boards: {
+          ...state.boards,
+          [board.id]: {
+            ...board,
+            doneColumnId: action.columnId,
+            updatedAt: action.now,
+          },
+        },
       }
     }
 
@@ -89,9 +112,17 @@ export function kanbanReducer(
       }
     }
     case 'column/deleted': {
-      if (!state.columns[action.id]) return state
+      const column = state.columns[action.id]
+      if (!column) return state
+      // 完了列を消したら、ボードの完了列の設定も外す
+      const board = state.boards[column.boardId]
+      const boards =
+        board?.doneColumnId === column.id
+          ? { ...state.boards, [board.id]: { ...board, doneColumnId: null } }
+          : state.boards
       return {
         ...state,
+        boards,
         columns: omitWhere(state.columns, (c) => c.id === action.id),
         tasks: omitWhere(state.tasks, (t) => t.columnId === action.id),
       }

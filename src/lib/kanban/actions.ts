@@ -19,6 +19,13 @@ export type KanbanAction =
   | { type: 'board/renamed'; id: BoardId; name: string; now: IsoDateString }
   | { type: 'board/deleted'; id: BoardId }
   | {
+      type: 'board/doneColumnSet'
+      id: BoardId
+      /** null で完了列を解除する */
+      columnId: ColumnId | null
+      now: IsoDateString
+    }
+  | {
       type: 'column/added'
       id: ColumnId
       boardId: BoardId
@@ -95,6 +102,16 @@ export const renameBoard = (
 export const deleteBoard = (id: BoardId): ActionOf<'board/deleted'> => ({
   type: 'board/deleted',
   id,
+})
+
+export const setDoneColumn = (
+  id: BoardId,
+  columnId: ColumnId | null,
+): ActionOf<'board/doneColumnSet'> => ({
+  type: 'board/doneColumnSet',
+  id,
+  columnId,
+  now: nowIso(),
 })
 
 export const addColumn = (

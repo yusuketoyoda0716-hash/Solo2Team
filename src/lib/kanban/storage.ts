@@ -1,5 +1,10 @@
 import { isDateOnly } from '@/lib/date.ts'
-import { LABEL_COLORS, type LabelColor, type Task } from '@/types/kanban'
+import {
+  LABEL_COLORS,
+  type Board,
+  type LabelColor,
+  type Task,
+} from '@/types/kanban'
 import type { KanbanState } from './state.ts'
 
 export const STORAGE_KEY = 'solo2team:kanban'
@@ -7,8 +12,12 @@ export const STORAGE_KEY = 'solo2team:kanban'
 export const CORRUPT_BACKUP_KEY = `${STORAGE_KEY}:corrupt`
 
 // データの形を変えたときは数字を上げ、古い形式からの変換を parseStoredData に足す。
-// 履歴: 1 = フェーズ1、2 = タスクに開始日・期限日を追加、3 = ラベルを追加
-const STORAGE_VERSION = 3
+// 履歴:
+//   1 = フェーズ1
+//   2 = タスクに開始日・期限日を追加
+//   3 = ラベルを追加
+//   4 = ボードに完了列を追加
+const STORAGE_VERSION = 4
 
 type StoredData = {
   version: typeof STORAGE_VERSION
@@ -53,73 +62,88 @@ export function saveState(state: KanbanState): void {
   }
 }
 
-// ---- 古い形式からの変換 ----
+// ---- 古い形式の型と、1つ新しい形式への変換 ----
 
+type BoardV3 = Omit<Board, 'doneColumnId'>
+type KanbanStateV3 = Omit<KanbanState, 'boards'> & {
+  boards: Record<string, BoardV3>
+}
 type TaskV2 = Omit<Task, 'labelIds'>
-type TaskV1 = Omit<TaskV2, 'startDate' | 'dueDate'>
-type KanbanStateV2 = Omit<KanbanState, 'tasks' | 'labels'> & {
+type KanbanStateV2 = Omit<KanbanStateV3, 'tasks' | 'labels'> & {
   tasks: Record<string, TaskV2>
 }
+type TaskV1 = Omit<TaskV2, 'startDate' | 'dueDate'>
 type KanbanStateV1 = Omit<KanbanStateV2, 'tasks'> & {
   tasks: Record<string, TaskV1>
 }
 
-function mapTasks<From, To>(
-  tasks: Record<string, From>,
-  convert: (task: From) => To,
+function mapValues<From, To>(
+  record: Record<string, From>,
+  convert: (value: From) => To,
 ): Record<string, To> {
   return Object.fromEntries(
-    Object.entries(tasks).map(([id, task]) => [id, convert(task)]),
+    Object.entries(record).map(([id, value]) => [id, convert(value)]),
   )
 }
 
 /** v1 → v2：タスクに開始日・期限日（未設定）を足す */
-function migrateV1ToV2(state: KanbanStateV1): KanbanStateV2 {
-  return {
-    ...state,
-    tasks: mapTasks(state.tasks, (t) => ({
-      ...t,
-      startDate: null,
-      dueDate: null,
-    })),
-  }
-}
+const migrateV1ToV2 = (state: KanbanStateV1): KanbanStateV2 => ({
+  ...state,
+  tasks: mapValues(state.tasks, (t) => ({
+    ...t,
+    startDate: null,
+    dueDate: null,
+  })),
+})
 
 /** v2 → v3：ラベル一覧（空）と、タスクのラベル（なし）を足す */
-function migrateV2ToV3(state: KanbanStateV2): KanbanState {
-  return {
-    ...state,
-    tasks: mapTasks(state.tasks, (t) => ({ ...t, labelIds: [] })),
-    labels: {},
-  }
-}
+const migrateV2ToV3 = (state: KanbanStateV2): KanbanStateV3 => ({
+  ...state,
+  tasks: mapValues(state.tasks, (t) => ({ ...t, labelIds: [] })),
+  labels: {},
+})
+
+/** v3 → v4：ボードに完了列（未設定）を足す */
+const migrateV3ToV4 = (state: KanbanStateV3): KanbanState => ({
+  ...state,
+  boards: mapValues(state.boards, (b) => ({ ...b, doneColumnId: null })),
+})
 
 /** 保存形式のバージョンを見て、今の形の state にする（読めなければ null） */
 function parseStoredData(data: unknown): KanbanState | null {
   if (!isObject(data)) return null
-  if (
-    data.version === 3 &&
-    isStateShape<KanbanState>(data.state, taskFieldsV3, true)
-  )
-    return data.state
-  if (
-    data.version === 2 &&
-    isStateShape<KanbanStateV2>(data.state, taskFieldsV2, false)
-  )
-    return migrateV2ToV3(data.state)
-  if (
-    data.version === 1 &&
-    isStateShape<KanbanStateV1>(data.state, taskFieldsV1, false)
-  )
-    return migrateV2ToV3(migrateV1ToV2(data.state))
-  return null
+  const { state } = data
+  switch (data.version) {
+    case 4:
+      return isStateShape<KanbanState>(state, schemaV4) ? state : null
+    case 3:
+      return isStateShape<KanbanStateV3>(state, schemaV3)
+        ? migrateV3ToV4(state)
+        : null
+    case 2:
+      return isStateShape<KanbanStateV2>(state, schemaV2)
+        ? migrateV3ToV4(migrateV2ToV3(state))
+        : null
+    case 1:
+      return isStateShape<KanbanStateV1>(state, schemaV1)
+        ? migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(state)))
+        : null
+    default:
+      return null
+  }
 }
 
 // ---- 読み込んだデータの形の確認 ----
 // localStorage の中身は外から書き換えられることもあるので、型を信用せず確かめる。
 
 type FieldType =
-  'string' | 'number' | 'dateOrNull' | 'stringArray' | 'labelColor'
+  | 'string'
+  | 'number'
+  | 'stringOrNull'
+  | 'dateOrNull'
+  | 'stringArray'
+  | 'labelColor'
+type Fields = Record<string, FieldType>
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -131,6 +155,8 @@ function isLabelColor(value: unknown): value is LabelColor {
 
 function matchesType(value: unknown, type: FieldType): boolean {
   switch (type) {
+    case 'stringOrNull':
+      return value === null || typeof value === 'string'
     case 'dateOrNull':
       return value === null || (typeof value === 'string' && isDateOnly(value))
     case 'stringArray':
@@ -144,7 +170,7 @@ function matchesType(value: unknown, type: FieldType): boolean {
 
 function hasFields(
   value: unknown,
-  fields: Record<string, FieldType>,
+  fields: Fields,
 ): value is Record<string, unknown> {
   return (
     isObject(value) &&
@@ -153,10 +179,7 @@ function hasFields(
 }
 
 /** ID をキーにしたオブジェクトで、各値が形を満たし、キーと id が一致するか */
-function isEntityRecord(
-  value: unknown,
-  fields: Record<string, FieldType>,
-): boolean {
+function isEntityRecord(value: unknown, fields: Fields): boolean {
   return (
     isObject(value) &&
     Object.entries(value).every(
@@ -168,33 +191,52 @@ function isEntityRecord(
 
 const timestamps = { createdAt: 'string', updatedAt: 'string' } as const
 
-const taskFieldsV1: Record<string, FieldType> = {
-  columnId: 'string',
-  title: 'string',
-  description: 'string',
-  position: 'number',
-  ...timestamps,
+/** バージョンごとの、各データの項目 */
+type Schema = {
+  boardFields: Fields
+  taskFields: Fields
+  /** ラベル一覧があるか（v3 から） */
+  hasLabels: boolean
 }
 
-const taskFieldsV2: Record<string, FieldType> = {
-  ...taskFieldsV1,
-  startDate: 'dateOrNull',
-  dueDate: 'dateOrNull',
+const schemaV1: Schema = {
+  boardFields: {
+    workspaceId: 'string',
+    name: 'string',
+    position: 'number',
+    ...timestamps,
+  },
+  taskFields: {
+    columnId: 'string',
+    title: 'string',
+    description: 'string',
+    position: 'number',
+    ...timestamps,
+  },
+  hasLabels: false,
 }
 
-const taskFieldsV3: Record<string, FieldType> = {
-  ...taskFieldsV2,
-  labelIds: 'stringArray',
+const schemaV2: Schema = {
+  ...schemaV1,
+  taskFields: {
+    ...schemaV1.taskFields,
+    startDate: 'dateOrNull',
+    dueDate: 'dateOrNull',
+  },
 }
 
-/**
- * state 全体の形を確かめる。タスクの項目とラベル一覧の有無はバージョンごとに渡す
- */
-function isStateShape<S>(
-  value: unknown,
-  taskFields: Record<string, FieldType>,
-  hasLabels: boolean,
-): value is S {
+const schemaV3: Schema = {
+  ...schemaV2,
+  taskFields: { ...schemaV2.taskFields, labelIds: 'stringArray' },
+  hasLabels: true,
+}
+
+const schemaV4: Schema = {
+  ...schemaV3,
+  boardFields: { ...schemaV3.boardFields, doneColumnId: 'stringOrNull' },
+}
+
+function isStateShape<S>(value: unknown, schema: Schema): value is S {
   return (
     isObject(value) &&
     hasFields(value.workspace, {
@@ -202,20 +244,15 @@ function isStateShape<S>(
       name: 'string',
       ...timestamps,
     }) &&
-    isEntityRecord(value.boards, {
-      workspaceId: 'string',
-      name: 'string',
-      position: 'number',
-      ...timestamps,
-    }) &&
+    isEntityRecord(value.boards, schema.boardFields) &&
     isEntityRecord(value.columns, {
       boardId: 'string',
       name: 'string',
       position: 'number',
       ...timestamps,
     }) &&
-    isEntityRecord(value.tasks, taskFields) &&
-    (!hasLabels ||
+    isEntityRecord(value.tasks, schema.taskFields) &&
+    (!schema.hasLabels ||
       isEntityRecord(value.labels, {
         workspaceId: 'string',
         name: 'string',

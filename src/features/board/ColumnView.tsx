@@ -3,8 +3,13 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState } from 'react'
 import { TextInputForm } from '@/components/TextInputForm.tsx'
 import { TaskCard } from '@/features/task/TaskCard.tsx'
-import { addTask, deleteColumn, renameColumn } from '@/lib/kanban/actions.ts'
-import { useKanbanDispatch } from '@/lib/kanban/hooks.ts'
+import {
+  addTask,
+  deleteColumn,
+  renameColumn,
+  setDoneColumn,
+} from '@/lib/kanban/actions.ts'
+import { useKanbanDispatch, useKanbanState } from '@/lib/kanban/hooks.ts'
 import type { Column, Task } from '@/types/kanban'
 import styles from './ColumnView.module.css'
 
@@ -17,6 +22,8 @@ type Props = {
 /** ボード内の1列 */
 export function ColumnView({ column, tasks }: Props) {
   const dispatch = useKanbanDispatch()
+  const isDoneColumn =
+    useKanbanState().boards[column.boardId]?.doneColumnId === column.id
   const [isEditing, setIsEditing] = useState(false)
   // タスクが1つもない列にも置けるよう、タスクの置き場全体を受け皿にする
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
@@ -63,6 +70,22 @@ export function ColumnView({ column, tasks }: Props) {
           </>
         )}
       </header>
+      {/* ボードに1つだけ。別の列で選ぶと、こちらは自動で外れる */}
+      <label className={styles.doneToggle}>
+        <input
+          type="checkbox"
+          checked={isDoneColumn}
+          onChange={(e) =>
+            dispatch(
+              setDoneColumn(
+                column.boardId,
+                e.target.checked ? column.id : null,
+              ),
+            )
+          }
+        />
+        完了列
+      </label>
       <div
         ref={setNodeRef}
         className={

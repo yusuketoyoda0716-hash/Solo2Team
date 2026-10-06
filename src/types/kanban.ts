@@ -34,6 +34,8 @@ export type Board = {
   name: string
   /** ワークスペース内での並び順（小さいほど先） */
   position: number
+  /** 完了を表す列（未設定なら null）。ここにあるタスクは完了とみなす */
+  doneColumnId: ColumnId | null
   createdAt: IsoDateString
   updatedAt: IsoDateString
 }

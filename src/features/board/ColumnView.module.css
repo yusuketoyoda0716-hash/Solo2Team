@@ -26,6 +26,14 @@
   white-space: nowrap;
 }
 
+.doneToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
 /* タスクの置き場。空の列でもドロップできるよう高さを確保する */
 .dropArea {
   min-height: 48px;

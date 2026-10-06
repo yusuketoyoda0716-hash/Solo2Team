@@ -25,6 +25,13 @@ export const selectTasks = (state: KanbanState, columnId: ColumnId): Task[] =>
     .filter((t) => t.columnId === columnId)
     .sort(byPosition)
 
+/** タスクがボードの完了列にあるか */
+export const isTaskDone = (state: KanbanState, task: Task): boolean => {
+  const column = state.columns[task.columnId]
+  if (!column) return false
+  return state.boards[column.boardId]?.doneColumnId === column.id
+}
+
 /** ラベルは名前順に並べる */
 export const selectLabels = (state: KanbanState): Label[] =>
   Object.values(state.labels).sort((a, b) => a.name.localeCompare(b.name, 'ja'))
