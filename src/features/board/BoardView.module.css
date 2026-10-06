@@ -9,7 +9,16 @@
   font-size: 1.25rem;
 }
 
-.empty {
-  margin: 0;
-  color: var(--color-muted);
+/* 列が多いときは横にスクロールする */
+.columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.addColumn {
+  width: 272px;
+  flex-shrink: 0;
 }

@@ -6,6 +6,7 @@
   --color-border: #d4d4d8;
   --color-muted: #71717a;
   --color-selected: #e4e4e7;
+  --color-column: #f4f4f5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -13,6 +14,7 @@
     --color-border: #3f3f46;
     --color-muted: #a1a1aa;
     --color-selected: #27272a;
+    --color-column: #18181b;
   }
 }
 
