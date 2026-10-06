@@ -1,9 +1,30 @@
-import type { BoardId, ColumnId, IsoDateString, TaskId } from '@/types/kanban'
+import type {
+  BoardId,
+  ColumnId,
+  IsoDateString,
+  LabelColor,
+  LabelId,
+  Task,
+  TaskId,
+} from '@/types/kanban'
+
+/** タスクの編集フォームで変えられる項目 */
+export type TaskChanges = Pick<
+  Task,
+  'title' | 'description' | 'startDate' | 'dueDate' | 'labelIds' | 'parentId'
+>
 
 export type KanbanAction =
   | { type: 'board/added'; id: BoardId; name: string; now: IsoDateString }
   | { type: 'board/renamed'; id: BoardId; name: string; now: IsoDateString }
   | { type: 'board/deleted'; id: BoardId }
+  | {
+      type: 'board/doneColumnSet'
+      id: BoardId
+      /** null で完了列を解除する */
+      columnId: ColumnId | null
+      now: IsoDateString
+    }
   | {
       type: 'column/added'
       id: ColumnId
@@ -19,16 +40,40 @@ export type KanbanAction =
       columnId: ColumnId
       title: string
       description: string
+      /** 子課題として追加するときの親 */
+      parentId: TaskId | null
       now: IsoDateString
     }
   | {
       type: 'task/updated'
       id: TaskId
-      title: string
-      description: string
+      changes: TaskChanges
       now: IsoDateString
     }
   | { type: 'task/deleted'; id: TaskId }
+  | {
+      type: 'task/moved'
+      id: TaskId
+      toColumnId: ColumnId
+      /** 移動先の列の中で何番目に置くか（0 始まり） */
+      toIndex: number
+      now: IsoDateString
+    }
+  | {
+      type: 'label/added'
+      id: LabelId
+      name: string
+      color: LabelColor
+      now: IsoDateString
+    }
+  | {
+      type: 'label/updated'
+      id: LabelId
+      name: string
+      color: LabelColor
+      now: IsoDateString
+    }
+  | { type: 'label/deleted'; id: LabelId }
 
 type ActionOf<T extends KanbanAction['type']> = Extract<
   KanbanAction,
@@ -61,6 +106,16 @@ export const deleteBoard = (id: BoardId): ActionOf<'board/deleted'> => ({
   id,
 })
 
+export const setDoneColumn = (
+  id: BoardId,
+  columnId: ColumnId | null,
+): ActionOf<'board/doneColumnSet'> => ({
+  type: 'board/doneColumnSet',
+  id,
+  columnId,
+  now: nowIso(),
+})
+
 export const addColumn = (
   boardId: BoardId,
   name: string,
@@ -90,29 +145,68 @@ export const deleteColumn = (id: ColumnId): ActionOf<'column/deleted'> => ({
 export const addTask = (
   columnId: ColumnId,
   title: string,
-  description = '',
+  options: { description?: string; parentId?: TaskId | null } = {},
 ): ActionOf<'task/added'> => ({
   type: 'task/added',
   id: newId(),
   columnId,
   title,
-  description,
+  description: options.description ?? '',
+  parentId: options.parentId ?? null,
   now: nowIso(),
 })
 
 export const updateTask = (
   id: TaskId,
-  title: string,
-  description: string,
+  changes: TaskChanges,
 ): ActionOf<'task/updated'> => ({
   type: 'task/updated',
   id,
-  title,
-  description,
+  changes,
   now: nowIso(),
 })
 
 export const deleteTask = (id: TaskId): ActionOf<'task/deleted'> => ({
   type: 'task/deleted',
+  id,
+})
+
+export const moveTask = (
+  id: TaskId,
+  toColumnId: ColumnId,
+  toIndex: number,
+): ActionOf<'task/moved'> => ({
+  type: 'task/moved',
+  id,
+  toColumnId,
+  toIndex,
+  now: nowIso(),
+})
+
+export const addLabel = (
+  name: string,
+  color: LabelColor,
+): ActionOf<'label/added'> => ({
+  type: 'label/added',
+  id: newId(),
+  name,
+  color,
+  now: nowIso(),
+})
+
+export const updateLabel = (
+  id: LabelId,
+  name: string,
+  color: LabelColor,
+): ActionOf<'label/updated'> => ({
+  type: 'label/updated',
+  id,
+  name,
+  color,
+  now: nowIso(),
+})
+
+export const deleteLabel = (id: LabelId): ActionOf<'label/deleted'> => ({
+  type: 'label/deleted',
   id,
 })

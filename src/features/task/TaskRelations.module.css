@@ -1,0 +1,22 @@
+.parent {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.bar {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+}

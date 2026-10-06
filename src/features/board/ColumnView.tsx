@@ -1,28 +1,47 @@
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState } from 'react'
 import { TextInputForm } from '@/components/TextInputForm.tsx'
 import { TaskCard } from '@/features/task/TaskCard.tsx'
-import { addTask, deleteColumn, renameColumn } from '@/lib/kanban/actions.ts'
+import {
+  addTask,
+  deleteColumn,
+  renameColumn,
+  setDoneColumn,
+} from '@/lib/kanban/actions.ts'
 import { useKanbanDispatch, useKanbanState } from '@/lib/kanban/hooks.ts'
-import { selectTasks } from '@/lib/kanban/selectors.ts'
-import type { Column } from '@/types/kanban'
+import type { Column, Task } from '@/types/kanban'
 import styles from './ColumnView.module.css'
 
 type Props = {
   column: Column
+  /** 表示する順に並んだタスク（ドラッグ中はプレビューの並び） */
+  tasks: Task[]
 }
 
 /** ボード内の1列 */
-export function ColumnView({ column }: Props) {
-  const state = useKanbanState()
+export function ColumnView({ column, tasks }: Props) {
   const dispatch = useKanbanDispatch()
+  const state = useKanbanState()
+  const isDoneColumn = state.boards[column.boardId]?.doneColumnId === column.id
   const [isEditing, setIsEditing] = useState(false)
-  const tasks = selectTasks(state, column.id)
+  // タスクが1つもない列にも置けるよう、タスクの置き場全体を受け皿にする
+  const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   const handleDelete = () => {
-    const ok = window.confirm(
-      `列「${column.name}」を削除しますか？\n中のタスクもすべて削除されます。`,
-    )
-    if (ok) dispatch(deleteColumn(column.id))
+    // 別の列にある子課題も、親と一緒に消える
+    const childrenElsewhere = Object.values(state.tasks).filter(
+      (t) =>
+        t.columnId !== column.id &&
+        t.parentId !== null &&
+        state.tasks[t.parentId]?.columnId === column.id,
+    ).length
+    const message =
+      `列「${column.name}」を削除しますか？\n中のタスクもすべて削除されます。` +
+      (childrenElsewhere > 0
+        ? `\n別の列にある子課題 ${childrenElsewhere} 件も削除されます。`
+        : '')
+    if (window.confirm(message)) dispatch(deleteColumn(column.id))
   }
 
   return (
@@ -60,15 +79,43 @@ export function ColumnView({ column }: Props) {
           </>
         )}
       </header>
-      {tasks.length === 0 ? (
-        <p className={styles.empty}>タスクはまだありません</p>
-      ) : (
-        <ul className={styles.tasks}>
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
-        </ul>
-      )}
+      {/* ボードに1つだけ。別の列で選ぶと、こちらは自動で外れる */}
+      <label className={styles.doneToggle}>
+        <input
+          type="checkbox"
+          checked={isDoneColumn}
+          onChange={(e) =>
+            dispatch(
+              setDoneColumn(
+                column.boardId,
+                e.target.checked ? column.id : null,
+              ),
+            )
+          }
+        />
+        完了列
+      </label>
+      <div
+        ref={setNodeRef}
+        className={
+          isOver ? `${styles.dropArea} ${styles.over}` : styles.dropArea
+        }
+      >
+        <SortableContext
+          items={tasks.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {tasks.length === 0 ? (
+            <p className={styles.empty}>タスクはまだありません</p>
+          ) : (
+            <ul className={styles.tasks}>
+              {tasks.map((task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
+            </ul>
+          )}
+        </SortableContext>
+      </div>
       <TextInputForm
         label={`列「${column.name}」に追加するタスク`}
         placeholder="新しいタスク"
