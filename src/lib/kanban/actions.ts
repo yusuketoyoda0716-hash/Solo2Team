@@ -1,4 +1,16 @@
-import type { BoardId, ColumnId, IsoDateString, TaskId } from '@/types/kanban'
+import type {
+  BoardId,
+  ColumnId,
+  IsoDateString,
+  Task,
+  TaskId,
+} from '@/types/kanban'
+
+/** タスクの編集フォームで変えられる項目 */
+export type TaskChanges = Pick<
+  Task,
+  'title' | 'description' | 'startDate' | 'dueDate'
+>
 
 export type KanbanAction =
   | { type: 'board/added'; id: BoardId; name: string; now: IsoDateString }
@@ -24,8 +36,7 @@ export type KanbanAction =
   | {
       type: 'task/updated'
       id: TaskId
-      title: string
-      description: string
+      changes: TaskChanges
       now: IsoDateString
     }
   | { type: 'task/deleted'; id: TaskId }
@@ -110,13 +121,11 @@ export const addTask = (
 
 export const updateTask = (
   id: TaskId,
-  title: string,
-  description: string,
+  changes: TaskChanges,
 ): ActionOf<'task/updated'> => ({
   type: 'task/updated',
   id,
-  title,
-  description,
+  changes,
   now: nowIso(),
 })
 

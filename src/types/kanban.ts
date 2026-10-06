@@ -11,6 +11,12 @@ export type TaskId = string
 export type IsoDateString = string
 
 /**
+ * 時刻を持たない日付（例: "2026-10-20"）。開始日・期限日に使う。
+ * タイムゾーンで日付がずれないよう、日時ではなく日付だけを持つ。
+ */
+export type DateOnlyString = string
+
+/**
  * ボードの入れ物。個人用とチーム用を区別しない
  * （個人用 = メンバーが自分だけのワークスペース）。
  */
@@ -47,6 +53,10 @@ export type Task = {
   columnId: ColumnId
   title: string
   description: string
+  /** 開始日（未設定なら null） */
+  startDate: DateOnlyString | null
+  /** 期限日（未設定なら null） */
+  dueDate: DateOnlyString | null
   /** 列内での並び順（小さいほど上） */
   position: number
   createdAt: IsoDateString

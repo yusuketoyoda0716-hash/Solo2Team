@@ -104,6 +104,8 @@ export function kanbanReducer(
         columnId: action.columnId,
         title: action.title,
         description: action.description,
+        startDate: null,
+        dueDate: null,
         position: nextPosition(
           Object.values(state.tasks).filter(
             (t) => t.columnId === action.columnId,
@@ -121,12 +123,7 @@ export function kanbanReducer(
         ...state,
         tasks: {
           ...state.tasks,
-          [task.id]: {
-            ...task,
-            title: action.title,
-            description: action.description,
-            updatedAt: action.now,
-          },
+          [task.id]: { ...task, ...action.changes, updatedAt: action.now },
         },
       }
     }

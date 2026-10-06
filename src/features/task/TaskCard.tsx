@@ -5,6 +5,7 @@ import { deleteTask, updateTask } from '@/lib/kanban/actions.ts'
 import { useKanbanDispatch } from '@/lib/kanban/hooks.ts'
 import type { Task } from '@/types/kanban'
 import styles from './TaskCard.module.css'
+import { TaskDates } from './TaskDates.tsx'
 import { TaskEditForm } from './TaskEditForm.tsx'
 
 type Props = {
@@ -38,8 +39,8 @@ export function TaskCard({ task }: Props) {
       <li ref={setNodeRef} style={style} className={styles.card}>
         <TaskEditForm
           task={task}
-          onSave={(title, description) => {
-            dispatch(updateTask(task.id, title, description))
+          onSave={(changes) => {
+            dispatch(updateTask(task.id, changes))
             setIsEditing(false)
           }}
           onCancel={() => setIsEditing(false)}
@@ -66,6 +67,7 @@ export function TaskCard({ task }: Props) {
       {task.description && (
         <p className={styles.description}>{task.description}</p>
       )}
+      <TaskDates task={task} />
       <div className={styles.actions}>
         <button
           type="button"

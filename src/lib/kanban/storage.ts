@@ -1,11 +1,14 @@
+import { isDateOnly } from '@/lib/date.ts'
+import type { Task } from '@/types/kanban'
 import type { KanbanState } from './state.ts'
 
 export const STORAGE_KEY = 'solo2team:kanban'
 /** 読めなかった保存データを、上書きされる前に退避しておくキー */
 export const CORRUPT_BACKUP_KEY = `${STORAGE_KEY}:corrupt`
 
-// データの形を変えたときは数字を上げ、古い形式からの変換を loadState に足す。
-const STORAGE_VERSION = 1
+// データの形を変えたときは数字を上げ、古い形式からの変換を parseStoredData に足す。
+// 履歴: 1 = フェーズ1、2 = タスクに開始日・期限日を追加
+const STORAGE_VERSION = 2
 
 type StoredData = {
   version: typeof STORAGE_VERSION
@@ -26,8 +29,8 @@ export function loadState(): KanbanState | null {
   if (raw === null) return null
 
   try {
-    const data: unknown = JSON.parse(raw)
-    if (isStoredData(data)) return data.state
+    const state = parseStoredData(JSON.parse(raw))
+    if (state) return state
   } catch {
     // JSON として読めない場合も下で同じように扱う
   }
@@ -50,13 +53,53 @@ export function saveState(state: KanbanState): void {
   }
 }
 
+// ---- 古い形式からの変換 ----
+
+type TaskV1 = Omit<Task, 'startDate' | 'dueDate'>
+type KanbanStateV1 = Omit<KanbanState, 'tasks'> & {
+  tasks: Record<string, TaskV1>
+}
+
+/** v1 → v2：タスクに開始日・期限日（未設定）を足す */
+function migrateV1ToV2(state: KanbanStateV1): KanbanState {
+  return {
+    ...state,
+    tasks: Object.fromEntries(
+      Object.entries(state.tasks).map(([id, task]) => [
+        id,
+        { ...task, startDate: null, dueDate: null },
+      ]),
+    ),
+  }
+}
+
+/** 保存形式のバージョンを見て、今の形の state にする（読めなければ null） */
+function parseStoredData(data: unknown): KanbanState | null {
+  if (!isObject(data)) return null
+  if (data.version === 2 && isStateShape<KanbanState>(data.state, taskFieldsV2))
+    return data.state
+  if (
+    data.version === 1 &&
+    isStateShape<KanbanStateV1>(data.state, taskFieldsV1)
+  )
+    return migrateV1ToV2(data.state)
+  return null
+}
+
 // ---- 読み込んだデータの形の確認 ----
 // localStorage の中身は外から書き換えられることもあるので、型を信用せず確かめる。
 
-type FieldType = 'string' | 'number'
+type FieldType = 'string' | 'number' | 'dateOrNull'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function matchesType(value: unknown, type: FieldType): boolean {
+  if (type === 'dateOrNull') {
+    return value === null || (typeof value === 'string' && isDateOnly(value))
+  }
+  return typeof value === type
 }
 
 function hasFields(
@@ -65,7 +108,7 @@ function hasFields(
 ): value is Record<string, unknown> {
   return (
     isObject(value) &&
-    Object.entries(fields).every(([key, type]) => typeof value[key] === type)
+    Object.entries(fields).every(([key, type]) => matchesType(value[key], type))
   )
 }
 
@@ -85,7 +128,25 @@ function isEntityRecord(
 
 const timestamps = { createdAt: 'string', updatedAt: 'string' } as const
 
-function isKanbanState(value: unknown): value is KanbanState {
+const taskFieldsV1: Record<string, FieldType> = {
+  columnId: 'string',
+  title: 'string',
+  description: 'string',
+  position: 'number',
+  ...timestamps,
+}
+
+const taskFieldsV2: Record<string, FieldType> = {
+  ...taskFieldsV1,
+  startDate: 'dateOrNull',
+  dueDate: 'dateOrNull',
+}
+
+/** state 全体の形を確かめる。タスクの項目はバージョンごとに渡す */
+function isStateShape<S>(
+  value: unknown,
+  taskFields: Record<string, FieldType>,
+): value is S {
   return (
     isObject(value) &&
     hasFields(value.workspace, {
@@ -105,20 +166,6 @@ function isKanbanState(value: unknown): value is KanbanState {
       position: 'number',
       ...timestamps,
     }) &&
-    isEntityRecord(value.tasks, {
-      columnId: 'string',
-      title: 'string',
-      description: 'string',
-      position: 'number',
-      ...timestamps,
-    })
-  )
-}
-
-function isStoredData(value: unknown): value is StoredData {
-  return (
-    isObject(value) &&
-    value.version === STORAGE_VERSION &&
-    isKanbanState(value.state)
+    isEntityRecord(value.tasks, taskFields)
   )
 }

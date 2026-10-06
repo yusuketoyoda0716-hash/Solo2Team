@@ -1,5 +1,6 @@
 import type { Task } from '@/types/kanban'
 import styles from './TaskCard.module.css'
+import { TaskDates } from './TaskDates.tsx'
 
 type Props = {
   task: Task
@@ -13,6 +14,7 @@ export function TaskCardPreview({ task }: Props) {
       {task.description && (
         <p className={styles.description}>{task.description}</p>
       )}
+      <TaskDates task={task} />
     </div>
   )
 }

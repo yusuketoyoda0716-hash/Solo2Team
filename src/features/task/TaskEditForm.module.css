@@ -9,6 +9,20 @@
   font: inherit;
 }
 
+.dates {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 0.875rem;
+}
+
+.error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
 .actions {
   display: flex;
   gap: 4px;
